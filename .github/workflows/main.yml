@@ -22,131 +22,48 @@ jobs:
         java-version: '11'
         cache: 'maven'
     
-    - name: Create missing source directories
+    - name: Debug - Show complete structure
       run: |
-        mkdir -p src/main/java/tarea2
-        mkdir -p src/test/java/tarea2
-    
-    - name: Create basic Java classes if missing
-      run: |
-        # Create Aeropuerto.java if it doesn't exist
-        if [ ! -f "src/main/java/tarea2/Aeropuerto.java" ]; then
-          echo "Creating Aeropuerto.java..."
-          cat > src/main/java/tarea2/Aeropuerto.java << 'EOF'
-package tarea2;
-
-public class Aeropuerto {
-    private String nombre;
-    private String codigo;
-    private String ciudad;
-    
-    public Aeropuerto(String nombre, String codigo, String ciudad) {
-        this.nombre = nombre;
-        this.codigo = codigo;
-        this.ciudad = ciudad;
-    }
-    
-    public String getNombre() {
-        return nombre;
-    }
-    
-    public String getCodigo() {
-        return codigo;
-    }
-    
-    public String getCiudad() {
-        return ciudad;
-    }
-}
-EOF
-        fi
-        
-        # Create Avion.java if it doesn't exist
-        if [ ! -f "src/main/java/tarea2/Avion.java" ]; then
-          echo "Creating Avion.java..."
-          cat > src/main/java/tarea2/Avion.java << 'EOF'
-package tarea2;
-
-public class Avion {
-    private String modelo;
-    private int capacidadPasajeros;
-    private int velocidadMaxima;
-    private int peso;
-    
-    public Avion(String modelo, int capacidadPasajeros, int velocidadMaxima, int peso) {
-        this.modelo = modelo;
-        this.capacidadPasajeros = capacidadPasajeros;
-        this.velocidadMaxima = velocidadMaxima;
-        this.peso = peso;
-    }
-    
-    public String getModelo() {
-        return modelo;
-    }
-    
-    public int getCapacidadPasajeros() {
-        return capacidadPasajeros;
-    }
-    
-    public int getVelocidadMaxima() {
-        return velocidadMaxima;
-    }
-    
-    public int getPeso() {
-        return peso;
-    }
-}
-EOF
-        fi
-        
-        # Create a simple ProduccionAeronaves.java if it doesn't exist
-        if [ ! -f "src/main/java/tarea2/ProduccionAeronaves.java" ]; then
-          echo "Creating ProduccionAeronaves.java..."
-          cat > src/main/java/tarea2/ProduccionAeronaves.java << 'EOF'
-package tarea2;
-
-public class ProduccionAeronaves {
-    public static void main(String[] args) {
-        System.out.println("Sistema de Producción de Aeronaves");
-        System.out.println("====================================");
-        
-        // Create some instances
-        Aeropuerto aeropuerto = new Aeropuerto("El Dorado", "BOG", "Bogotá");
-        Avion avion = new Avion("Boeing 737", 200, 850, 70000);
-        
-        System.out.println("Aeropuerto: " + aeropuerto.getNombre());
-        System.out.println("Avión: " + avion.getModelo());
-        System.out.println("Capacidad: " + avion.getCapacidadPasajeros() + " pasajeros");
-    }
-}
-EOF
-        fi
-    
-    - name: Show project structure
-      run: |
-        echo "=== Project Structure ==="
+        echo "=== Full project structure ==="
         find . -name "*.java" -type f | sort
         echo ""
-        echo "=== Main source files ==="
-        ls -la src/main/java/tarea2/*.java 2>/dev/null || echo "No main Java files found"
+        echo "=== src/main/java/tarea2/ ==="
+        ls -la src/main/java/tarea2/ 2>/dev/null || echo "Directory doesn't exist"
         echo ""
-        echo "=== Test files ==="
-        ls -la src/test/java/tarea2/*.java 2>/dev/null || echo "No test Java files found"
+        echo "=== Checking if Aeropuerto.java exists ==="
+        find . -name "Aeropuerto.java" -type f
+        echo ""
+        echo "=== Checking if Avion.java exists ==="
+        find . -name "Avion.java" -type f
     
-    - name: Build with Maven
-      run: mvn clean compile
+    - name: Fix structure if needed
+      run: |
+        # Check if Java files are in wrong location
+        if [ ! -d "src/main/java/tarea2" ]; then
+          echo "Creating directory structure..."
+          mkdir -p src/main/java/tarea2
+          mkdir -p src/test/java/tarea2
+        fi
+        
+        # Move any Java files from root to correct directory
+        if [ -f "Aeropuerto.java" ]; then
+          echo "Moving Aeropuerto.java to src/main/java/tarea2/"
+          mv Aeropuerto.java src/main/java/tarea2/
+        fi
+        
+        if [ -f "Avion.java" ]; then
+          echo "Moving Avion.java to src/main/java/tarea2/"
+          mv Avion.java src/main/java/tarea2/
+        fi
+        
+        # Move all Java files from root
+        mv *.java src/main/java/tarea2/ 2>/dev/null || true
     
-    - name: Run unit tests
-      run: mvn test
+    - name: Compile only main code first
+      run: mvn compile -DskipTests
+    
+    - name: Run tests (skip compile to use existing)
+      run: mvn test -DskipTests=false
     
     - name: Package application
       run: mvn package -DskipTests
-    
-    - name: Run the application
-      run: |
-        if [ -f "target/classes/tarea2/ProduccionAeronaves.class" ]; then
-          echo "=== Running the application ==="
-          java -cp target/classes tarea2.ProduccionAeronaves
-        else
-          echo "Main class not compiled, skipping execution"
-        fi
