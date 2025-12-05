@@ -22,21 +22,48 @@ jobs:
         java-version: '11'
         cache: 'maven'
     
-    - name: Show project structure
+    - name: Debug - Show complete structure
       run: |
-        echo "=== Project Structure ==="
-        find . -type f -name "*.java" | sort
+        echo "=== Full project structure ==="
+        find . -name "*.java" -type f | sort
+        echo ""
+        echo "=== src/main/java/tarea2/ ==="
+        ls -la src/main/java/tarea2/ 2>/dev/null || echo "Directory doesn't exist"
+        echo ""
+        echo "=== Checking if Aeropuerto.java exists ==="
+        find . -name "Aeropuerto.java" -type f
+        echo ""
+        echo "=== Checking if Avion.java exists ==="
+        find . -name "Avion.java" -type f
     
-    - name: Build with Maven
-      run: mvn clean compile
+    - name: Fix structure if needed
+      run: |
+        # Check if Java files are in wrong location
+        if [ ! -d "src/main/java/tarea2" ]; then
+          echo "Creating directory structure..."
+          mkdir -p src/main/java/tarea2
+          mkdir -p src/test/java/tarea2
+        fi
+        
+        # Move any Java files from root to correct directory
+        if [ -f "Aeropuerto.java" ]; then
+          echo "Moving Aeropuerto.java to src/main/java/tarea2/"
+          mv Aeropuerto.java src/main/java/tarea2/
+        fi
+        
+        if [ -f "Avion.java" ]; then
+          echo "Moving Avion.java to src/main/java/tarea2/"
+          mv Avion.java src/main/java/tarea2/
+        fi
+        
+        # Move all Java files from root
+        mv *.java src/main/java/tarea2/ 2>/dev/null || true
     
-    - name: Run unit tests
-      run: mvn test
+    - name: Compile only main code first
+      run: mvn compile -DskipTests
+    
+    - name: Run tests (skip compile to use existing)
+      run: mvn test -DskipTests=false
     
     - name: Package application
       run: mvn package -DskipTests
-    
-    - name: Run the application
-      run: |
-        echo "=== Running the application ==="
-        java -cp target/classes tarea2.ProduccionAeronaves
