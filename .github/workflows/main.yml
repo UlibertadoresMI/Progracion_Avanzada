@@ -2,9 +2,9 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: ["main"]
+    branches: ["pruebas_unitarias", "main"]  # Ejecutar en ambas ramas
   pull_request:
-    branches: ["main"]
+    branches: ["pruebas_unitarias", "main"]
   workflow_dispatch:
 
 jobs:
@@ -14,7 +14,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
+      with:
+        ref: pruebas_unitarias  # Especificar rama a usar
+
     - name: Set up JDK 11
       uses: actions/setup-java@v3
       with:
@@ -22,48 +24,30 @@ jobs:
         java-version: '11'
         cache: 'maven'
     
-    - name: Debug - Show complete structure
+    - name: Verify project structure
       run: |
-        echo "=== Full project structure ==="
+        echo "=== Project structure ==="
         find . -name "*.java" -type f | sort
         echo ""
-        echo "=== src/main/java/tarea2/ ==="
-        ls -la src/main/java/tarea2/ 2>/dev/null || echo "Directory doesn't exist"
+        echo "=== Main classes ==="
+        ls -la src/main/java/tarea2/*.java 2>/dev/null || echo "No main Java files"
         echo ""
-        echo "=== Checking if Aeropuerto.java exists ==="
-        find . -name "Aeropuerto.java" -type f
-        echo ""
-        echo "=== Checking if Avion.java exists ==="
-        find . -name "Avion.java" -type f
+        echo "=== Checking ProduccionAeronaves.java ==="
+        if [ -f "src/main/java/tarea2/ProduccionAeronaves.java" ]; then
+          echo "✓ Found ProduccionAeronaves.java"
+          head -20 src/main/java/tarea2/ProduccionAeronaves.java
+        else
+          echo "✗ ERROR: ProduccionAeronaves.java not found!"
+          exit 1
+        fi
     
-    - name: Fix structure if needed
+    - name: Build with Maven
+      run: mvn clean compile
+    
+    - name: Run unit tests
+      run: mvn test
+    
+    - name: Run application
       run: |
-        # Check if Java files are in wrong location
-        if [ ! -d "src/main/java/tarea2" ]; then
-          echo "Creating directory structure..."
-          mkdir -p src/main/java/tarea2
-          mkdir -p src/test/java/tarea2
-        fi
-        
-        # Move any Java files from root to correct directory
-        if [ -f "Aeropuerto.java" ]; then
-          echo "Moving Aeropuerto.java to src/main/java/tarea2/"
-          mv Aeropuerto.java src/main/java/tarea2/
-        fi
-        
-        if [ -f "Avion.java" ]; then
-          echo "Moving Avion.java to src/main/java/tarea2/"
-          mv Avion.java src/main/java/tarea2/
-        fi
-        
-        # Move all Java files from root
-        mv *.java src/main/java/tarea2/ 2>/dev/null || true
-    
-    - name: Compile only main code first
-      run: mvn compile -DskipTests
-    
-    - name: Run tests (skip compile to use existing)
-      run: mvn test -DskipTests=false
-    
-    - name: Package application
-      run: mvn package -DskipTests
+        echo "=== Running application ==="
+        java -cp target/classes tarea2.ProduccionAeronaves
